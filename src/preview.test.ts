@@ -1,0 +1,96 @@
+import { describe, expect, it } from "@effect/vitest";
+import { Effect } from "effect";
+
+import { hasUsableDisplayPreview, hasUsableDisplayTitle, isBlank, isSyntheticContextText, recoverPreview } from "./preview.js";
+import type { TranscriptMetadata } from "./types.js";
+
+const emptyTranscript: TranscriptMetadata = {
+  filePath: "/tmp/session.jsonl",
+  threadId: "thread-1",
+  cwdMentions: [],
+  userMessages: [],
+  eventMessages: []
+};
+
+describe("preview recovery", () => {
+  it.effect("detects blank values", () => Effect.gen(function*() {
+    expect(isBlank("")).toBe(true);
+    expect(isBlank("   ")).toBe(true);
+    expect(isBlank(null)).toBe(true);
+    expect(isBlank("hello")).toBe(false);
+  }));
+
+  it.effect("recovers preview from first_user_message first", () => Effect.gen(function*() {
+    expect(recoverPreview("  please fix this  ", emptyTranscript)).toEqual({
+      value: "please fix this",
+      source: "first_user_message"
+    });
+  }));
+
+  it.effect("recovers preview from transcript user messages", () => Effect.gen(function*() {
+    expect(
+      recoverPreview("", {
+        ...emptyTranscript,
+        userMessages: ["build the CLI"]
+      })
+    ).toEqual({
+      value: "build the CLI",
+      source: "transcript_user_message"
+    });
+  }));
+
+  it.effect("recovers preview from transcript event messages when user messages are unavailable", () => Effect.gen(function*() {
+    expect(
+      recoverPreview("", {
+        ...emptyTranscript,
+        eventMessages: ["User asked for scan output"]
+      })
+    ).toEqual({
+      value: "User asked for scan output",
+      source: "transcript_event_message"
+    });
+  }));
+
+  it.effect("skips synthetic environment context when recovering previews", () => Effect.gen(function*() {
+    const environmentContext =
+      "<environment_context>\n  <cwd>/Users/bdmwarya/Desktop/projects/creaClient</cwd>\n  <shell>zsh</shell>\n</environment_context>";
+
+    expect(isSyntheticContextText(environmentContext)).toBe(true);
+    expect(
+      recoverPreview(environmentContext, {
+        ...emptyTranscript,
+        userMessages: [environmentContext, "actual user request"]
+      })
+    ).toEqual({
+      value: "actual user request",
+      source: "transcript_user_message"
+    });
+  }));
+
+  it.effect("treats Claude Code synthetic wrappers as unusable", () => Effect.gen(function*() {
+    expect(isSyntheticContextText("<command-name>/loop</command-name>")).toBe(true);
+    expect(isSyntheticContextText("<command-message>loop</command-message>")).toBe(true);
+    expect(isSyntheticContextText("<local-command-stdout>output</local-command-stdout>")).toBe(true);
+    expect(isSyntheticContextText("<system-reminder>be careful</system-reminder>")).toBe(true);
+    expect(isSyntheticContextText("Caveat: the messages below were generated")).toBe(true);
+    expect(isSyntheticContextText("please build me a CLI")).toBe(false);
+  }));
+
+  it.effect("skips Claude command wrappers when recovering previews", () => Effect.gen(function*() {
+    expect(
+      recoverPreview("<command-name>/loop</command-name>", {
+        ...emptyTranscript,
+        userMessages: ["<command-name>/loop</command-name>", "real first request"]
+      })
+    ).toEqual({
+      value: "real first request",
+      source: "transcript_user_message"
+    });
+  }));
+
+  it.effect("treats synthetic display metadata as unusable", () => Effect.gen(function*() {
+    expect(hasUsableDisplayTitle("A real title")).toBe(true);
+    expect(hasUsableDisplayTitle("<permissions instructions>tool limits</permissions instructions>")).toBe(false);
+    expect(hasUsableDisplayPreview("&lt;environment_context&gt;cwd&lt;/environment_context&gt;")).toBe(false);
+  }));
+});
