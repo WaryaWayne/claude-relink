@@ -16,6 +16,30 @@ There is no database. Each session is a plain JSONL transcript, and the session 
 
 It does not edit, move, or delete anything under `~/.claude`. It only reads transcripts and their modification times.
 
+## Using the Codex CLI?
+
+If you use the Codex CLI instead of Claude Code, there is a companion tool, `codex-relink`, that solves this same problem for Codex chats — finding missing or hard-to-locate sessions that match the current working directory and printing the command needed to resume them.
+
+It uses the same commands and usage as `claude-relink`. Install it globally:
+
+```bash
+npm install --global codex-relink
+```
+
+Then run it from the project directory whose Codex chats you want to find:
+
+```bash
+codex-relink latest
+codex-relink list
+```
+
+Or run it without installing anything globally:
+
+```bash
+npx codex-relink latest
+bunx codex-relink latest
+```
+
 ## Install
 
 Install it globally from npm if you want the `claude-relink` command available everywhere:
