@@ -141,6 +141,12 @@ claude-relink --claude-home /tmp/claude-home latest
 
 Normal use does not require any path flags; the current working directory is used automatically.
 
+## Related tools
+
+[`tailings`](https://github.com/WaryaWayne/tailings) — for when you want to gather a directory's *entire* agent history into the folder rather than resume one chat. It pulls the sessions and memories that Claude Code, Codex, OpenCode, and Gemini produced for the current directory into `./AGENTS.md` + `./.tailings/`, so the next agent — in any tool — is instantly caught up.
+
+[`ai-hr`](https://github.com/WaryaWayne/ai-hr) — local AI employee performance reviews for coding agents. It scans your local usage history from Codex, Claude Code, and OpenCode, normalizes token usage, estimates API-equivalent cost, and prints a report card for your AI coding workforce.
+
 ## Author
 
 Built by Warya Wayne, `@waryawayne`.
